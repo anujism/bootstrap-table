@@ -317,37 +317,43 @@
 
         if (addedFilterControl) {
             header.off('keyup', 'input').on('keyup', 'input', function (event) {
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(function () {
-                    that.onColumnSearch(event);
-                }, that.options.searchTimeOut);
+                if(!that.$tableLoading.is(":visible")) {
+                    clearTimeout(timeoutId);
+                    timeoutId = setTimeout(function () {
+                        that.onColumnSearch(event);
+                    }, that.options.searchTimeOut);
+                }
             });
 
             header.off('change', 'select').on('change', 'select', function (event) {
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(function () {
-                    that.onColumnSearch(event);
-                }, that.options.searchTimeOut);
+                if(!that.$tableLoading.is(":visible")) {
+                    clearTimeout(timeoutId);
+                    timeoutId = setTimeout(function () {
+                        that.onColumnSearch(event);
+                    }, that.options.searchTimeOut);
+                }
             });
 
             header.off('mouseup', 'input').on('mouseup', 'input', function (event) {
-                var $input = $(this),
-                oldValue = $input.val();
+                if(!that.$tableLoading.is(":visible")) {
+                    var $input = $(this),
+                        oldValue = $input.val();
 
-                if (oldValue === "") {
-                    return;
-                }
-
-                setTimeout(function(){
-                    var newValue = $input.val();
-
-                    if (newValue === "") {
-                        clearTimeout(timeoutId);
-                        timeoutId = setTimeout(function () {
-                            that.onColumnSearch(event);
-                        }, that.options.searchTimeOut);
+                    if (oldValue === "") {
+                        return;
                     }
-                }, 1);
+
+                    setTimeout(function () {
+                        var newValue = $input.val();
+
+                        if (newValue === "") {
+                            clearTimeout(timeoutId);
+                            timeoutId = setTimeout(function () {
+                                that.onColumnSearch(event);
+                            }, that.options.searchTimeOut);
+                        }
+                    }, 1);
+                }
             });
 
             if (header.find('.date-filter-control').length > 0) {
@@ -623,13 +629,27 @@
     };
 
     BootstrapTable.prototype.onColumnSearch = function (event) {
-        if ($.inArray(event.keyCode, [37, 38, 39, 40]) > -1) {
+        var valid =
+        (event.keyCode > 47 && event.keyCode < 58)   || // number keys
+        event.keyCode == 32 || event.keyCode == 13   ||  // spacebar & return key(s) (if you want to allow carriage returns) also backspace
+        event.keyCode == 8 || event.keyCode == 46   ||  // backspace and delete
+        (event.keyCode > 64 && event.keyCode < 91)   || // letter keys
+        (event.keyCode > 95 && event.keyCode < 112)  || // numpad keys
+        (event.keyCode > 185 && event.keyCode < 193) || // ;=,-./` (in order)
+        (event.keyCode > 218 && event.keyCode < 223) ||
+            event.keycode == undefined;
+
+        if ($.inArray(event.keyCode, [37, 38, 39, 40]) > -1 || !valid) {
             return;
         }
 
         copyValues(this);
         var text = $.trim($(event.currentTarget).val());
-        var $field = $(event.currentTarget).closest('[data-field]').data('field');
+        var $fieldTh = $(event.currentTarget).closest('[data-field]');
+        var $field = $fieldTh.data('filter-name');
+        if(!$field) {
+            $field = $fieldTh.data('field');
+        }
 
         if ($.isEmptyObject(this.filterColumnsPartial)) {
             this.filterColumnsPartial = {};
